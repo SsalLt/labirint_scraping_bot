@@ -6,7 +6,6 @@ from bs4 import BeautifulSoup
 from config import timer, get_response_status, fetch
 
 
-# Функция для проверки одной страницы с использованием семафора
 async def check_page(session, url, page, sem):
     async with sem:
         status = await get_response_status(session, url)
@@ -23,7 +22,6 @@ async def get_category_name(content) -> str:
     return h1.text.strip() if h1 else None
 
 
-# Основная функция для проверки множества страниц
 async def get_categories_count(domen_url: str, max_pages: int = 4000,
                                concurrency: int = 500) -> dict:
     real_pages: dict = {}
@@ -52,18 +50,25 @@ async def update_categories():
     real_pages: dict = await get_categories_count(domen_url=url)
 
     # Запись в JSON файл
-    with open("scraping_core/categories.json", "w", encoding="utf-8") as json_file:
+    with open("categories.json", "w", encoding="utf-8") as json_file:
         json.dump(real_pages, json_file, indent=4, ensure_ascii=False)
 
     # Запись в CSV файл
-    with open("scraping_core/categories.csv", "w", newline='', encoding="utf-8") as csv_file:
-        writer = csv.writer(csv_file)
+    with open("categories.csv", "w", newline='', encoding="utf-8-sig") as csv_file:
+        writer = csv.writer(
+            csv_file,
+            delimiter=';',
+            quoting=csv.QUOTE_ALL
+        )
         writer.writerow(["Номер категории", "Название категории"])
         for key, value in real_pages.items():
-            writer.writerow([key, value])
+            writer.writerow([
+                int(str(key).replace(';', ',')),
+                str(value).replace(';', ',')
+            ])
 
     # Запись в TXT файл
-    with open("scraping_core/categories.txt", "w", encoding="utf-8") as txt_file:
+    with open("categories.txt", "w", encoding="utf-8") as txt_file:
         for key, value in real_pages.items():
             txt_file.write(f"{key} - {value}\n")
 

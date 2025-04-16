@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 from aiogram import F, Router
 from pathlib import Path
-from io import BytesIO
+from io import BytesIO, StringIO
 import json
 import csv
 from scraping_core.get_categories import update_categories
@@ -115,3 +115,55 @@ async def process_genre(message: Message, state: FSMContext):
         await message.answer(f"⚠️ Ошибка: {str(e)}")
     finally:
         await state.clear()
+
+
+@router.callback_query(F.data.startswith("csv_"))
+async def send_csv(callback: CallbackQuery):
+    genre_id: int = int(callback.data.split("_")[1])
+    data: list[dict] | None = user_data_cache.get(genre_id)
+
+    if not data:
+        await callback.answer("⏳ Данные устарели или отсутствуют", show_alert=True)
+        return
+
+    try:
+        text_buffer = StringIO()
+        text_buffer.write('\ufeff')  # Добавление BOM для Excel
+        writer = csv.writer(
+            text_buffer,
+            delimiter=';',
+            quoting=csv.QUOTE_ALL,  # экранирование всех значения
+            lineterminator='\r\n'  # правильные переводы строк для Windows
+        )
+
+        writer.writerow([
+            'Название', 'Ссылка', 'Автор',
+            'Издательство', 'Цена', 'Старая цена', 'Скидка'
+        ])
+
+        for item in data:
+            writer.writerow([
+                str(item.get('book_title', '')).replace(';', ','),
+                str(item.get('book_link', '')),
+                str(item.get('book_author', '')),
+                str(item.get('book_publishing', '')),
+                str(item.get('book_discounted_price', '')),
+                str(item.get('book_old_price', '')),
+                str(item.get('book_sale', ''))
+            ])
+
+        csv_data = text_buffer.getvalue().encode('utf-8-sig')  # Явное указание BOM
+
+        bytes_buffer = BytesIO(csv_data)
+        bytes_buffer.seek(0)
+
+        await callback.message.answer_document(
+            BufferedInputFile(
+                bytes_buffer.read(),
+                filename=f"labirint_{genre_id}.csv"
+            )
+        )
+        await callback.answer()
+
+    except Exception as e:
+        await callback.answer(f"⚠️ Ошибка: {str(e)}", show_alert=True)

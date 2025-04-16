@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 # my
-categories.json
+categories.*
 
 # C extensions
 *.so

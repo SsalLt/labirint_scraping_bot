@@ -21,13 +21,21 @@ async def get_response_status(session: aiohttp.ClientSession, url: str) -> int |
 
 
 async def get_category_name(session: aiohttp.ClientSession, url: str, page: int,
-                            sem: asyncio.Semaphore) -> dict[int: str] | None:
+                            sem: asyncio.Semaphore = None) -> dict[int: str] | None:
     async def scrap_category_name(content: str) -> str:
         soup = BeautifulSoup(content, "lxml")
         h1 = soup.find("h1")
         return h1.text.strip() if h1 else None
 
-    async with sem:
+    if sem:
+        async with sem:
+            status = await get_response_status(session, url)
+            if status is not None and status != 404:
+                name = await scrap_category_name(content=await fetch(session, url))
+                if name:
+                    return {page: name}
+            return None
+    else:
         status = await get_response_status(session, url)
         if status is not None and status != 404:
             name = await scrap_category_name(content=await fetch(session, url))

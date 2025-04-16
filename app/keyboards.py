@@ -4,6 +4,7 @@ from aiogram.types import (KeyboardButton, ReplyKeyboardMarkup,
 
 main = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text="📚 Получить список товаров по категории")],
+    [KeyboardButton(text="📝 Название категории по номеру")],
     [KeyboardButton(text="🔢 Получить список категорий")]
 ],
     resize_keyboard=True)

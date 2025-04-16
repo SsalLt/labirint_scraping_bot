@@ -1,3 +1,4 @@
+import aiohttp
 from aiogram.types.input_file import FSInputFile, BufferedInputFile
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
@@ -7,9 +8,10 @@ from pathlib import Path
 from io import BytesIO, StringIO
 import json
 import csv
+from scraping_core.scraping_functions import get_category_name
 from scraping_core.get_categories import update_categories
 from scraping_core.get_category_info import collect_data
-from app.my_states import ParseState
+from app.my_states import ParseState, ParseGenreForCheck
 import app.keyboards as kb
 
 router = Router()
@@ -175,3 +177,37 @@ async def send_csv(callback: CallbackQuery):
 
     except Exception as e:
         await callback.answer(f"⚠️ Ошибка: {str(e)}", show_alert=True)
+
+
+@router.message(F.text == "📝 Название категории по номеру")
+async def get_category_name_handler(message: Message, state: FSMContext):
+    await message.answer("🔢 Введите номер категории:", reply_markup=kb.back_to_main)
+    await state.set_state(ParseGenreForCheck.waiting_genre)
+
+
+@router.message(ParseGenreForCheck.waiting_genre)
+async def process_genre(message: Message, state: FSMContext):
+    try:
+        genre_id: int = int(message.text.strip())
+    except ValueError:
+        await message.answer("❌ Номер категории должен быть числом. Повторите ввод:")
+        return
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = f"https://www.labirint.ru/genres/{genre_id}"
+            data: dict[int: str] | None = await get_category_name(session=session,
+                                                                  url=url,
+                                                                  page=genre_id)
+            if not data:
+                await message.answer("❌ Категория не найдена.",
+                                     reply_markup=kb.main)
+                return
+
+        await message.answer(f"#⃣  Номер категории: {genre_id}\n"
+                             f"📝 Название категории: {data.get(genre_id)}",
+                             reply_markup=kb.main)
+    except Exception as e:
+        await message.answer(f"⚠️ Ошибка: {str(e)}")
+    finally:
+        await state.clear()

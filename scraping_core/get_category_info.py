@@ -3,7 +3,8 @@ import aiohttp
 import asyncio
 import bs4
 import csv
-from config import timer, fetch, get_response_status
+from config import timer
+from scraping_core.scraping_functions import get_response_status, fetch
 
 
 def safe_extract(func, default=None):

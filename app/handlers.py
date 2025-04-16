@@ -17,6 +17,7 @@ user_data_cache: dict = {}
 
 
 @router.message(Command("start"))
+@router.message(F.text == "Назад ↩")
 async def start_cmd(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(f"Привет, {message.from_user.full_name}!\n"
@@ -80,7 +81,7 @@ async def update_categories_handler(message: Message):
 
 @router.message(F.text == "📚 Получить список товаров по категории")
 async def handle_category_request(message: Message, state: FSMContext):
-    await message.answer("🔢 Введите номер категории:")
+    await message.answer("🔢 Введите номер категории:", reply_markup=kb.back_to_main)
     await state.set_state(ParseState.waiting_genre)
 
 
@@ -92,22 +93,29 @@ async def process_genre(message: Message, state: FSMContext):
         await message.answer("❌ Номер категории должен быть числом. Повторите ввод:")
         return
 
-    await message.answer("⏳ Сбор данных запущен, это может занять некоторое время...")
+    await message.answer("⏳ Сбор данных запущен, это может занять некоторое время...",
+                         reply_markup=kb.remove)
 
     try:
-        data: list[dict] = await collect_data(genre_id)
+        data: list[dict] | None = await collect_data(genre_id)
+        if not data:
+            await message.answer("❌ Ошибка при сборе данных.\n"
+                                 "Попробуйте позже или проверьте наличие категории "
+                                 f"(https://www.labirint.ru/genres/{genre_id}/).",
+                                 reply_markup=kb.main)
+            return
         user_data_cache[genre_id] = data
 
         json_file = BytesIO()
         json_file.write(json.dumps(data, ensure_ascii=False, indent=4).encode('utf-8'))
         json_file.seek(0)
 
+        await message.answer("✅ Данные успешно собраны", reply_markup=kb.main)
         await message.answer_document(
             BufferedInputFile(
                 json_file.read(),
-                filename=f"labirint_{genre_id}.json"
+                filename=f"labirint_genre_{genre_id}.json"
             ),
-            caption="✅ Готово!",
             reply_markup=kb.csv_inline(genre_id=genre_id)
         )
 
@@ -160,7 +168,7 @@ async def send_csv(callback: CallbackQuery):
         await callback.message.answer_document(
             BufferedInputFile(
                 bytes_buffer.read(),
-                filename=f"labirint_{genre_id}.csv"
+                filename=f"labirint_genre_{genre_id}.csv"
             )
         )
         await callback.answer()

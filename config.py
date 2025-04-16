@@ -1,27 +1,10 @@
-import os
-from datetime import datetime
-import aiohttp
 from dotenv import load_dotenv, find_dotenv
-from fake_useragent import UserAgent
+from datetime import datetime
+import os
 
 load_dotenv(find_dotenv())
 
 TOKEN = os.getenv("TOKEN")
-user = UserAgent()
-
-
-async def fetch(session: aiohttp.ClientSession, url: str) -> str:
-    async with session.get(url=url, headers={"user-agent": f"{user.random}"}) as response:
-        return await response.text()
-
-
-# Функция для получения статуса ответа от сервера
-async def get_response_status(session: aiohttp.ClientSession, url: str) -> int | None:
-    try:
-        async with session.get(url=url, headers={"user-agent": f"{user.random}"}) as response:
-            return response.status
-    except aiohttp.ClientError:
-        return None
 
 
 def timer(func):
@@ -35,4 +18,4 @@ def timer(func):
     return wrapper
 
 
-__all__ = ["TOKEN", "timer", "fetch", "get_response_status"]
+__all__ = ["TOKEN", "timer"]

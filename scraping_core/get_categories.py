@@ -2,24 +2,8 @@ import csv
 import json
 import aiohttp
 import asyncio
-from bs4 import BeautifulSoup
-from config import timer, get_response_status, fetch
-
-
-async def check_page(session, url, page, sem):
-    async with sem:
-        status = await get_response_status(session, url)
-        if status is not None and status != 404:
-            name = await get_category_name(content=await fetch(session, url))
-            if name:
-                return {page: name}
-        return None
-
-
-async def get_category_name(content) -> str:
-    soup = BeautifulSoup(content, "lxml")
-    h1 = soup.find("h1")
-    return h1.text.strip() if h1 else None
+from config import timer
+from scraping_core.scraping_functions import get_category_name
 
 
 async def get_categories_count(domen_url: str, max_pages: int = 4000,
@@ -31,7 +15,7 @@ async def get_categories_count(domen_url: str, max_pages: int = 4000,
         tasks: list = []
         for page in range(max_pages):
             url = f"{domen_url.rstrip('/')}/{page}"
-            task = asyncio.create_task(check_page(session, url, page, sem))
+            task = asyncio.create_task(get_category_name(session, url, page, sem))
             tasks.append(task)
         results = await asyncio.gather(*tasks)
         for result in results:

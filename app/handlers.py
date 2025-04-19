@@ -155,19 +155,19 @@ async def send_csv(callback: CallbackQuery):
         )
 
         writer.writerow([
-            'Название', 'Ссылка', 'Автор',
-            'Издательство', 'Цена', 'Старая цена', 'Скидка'
+            "Название", "Ссылка", "Автор",
+            "Издательство", "Цена", "Старая цена", "Скидка"
         ])
 
         for item in data:
             writer.writerow([
-                str(item.get('book_title', '')).replace(';', ','),
-                str(item.get('book_link', '')),
-                str(item.get('book_author', '')),
-                str(item.get('book_publishing', '')),
-                str(item.get('book_discounted_price', '')),
-                str(item.get('book_old_price', '')),
-                str(item.get('book_sale', ''))
+                str(item.get('book_title', 'Отсутствует')).replace(';', ','),
+                str(item.get('book_link', 'Отсутствует')),
+                str(item.get('book_author', 'Отсутствует')),
+                str(item.get('book_publishing', 'Отсутствует')),
+                str(item.get('book_discounted_price', 'Отсутствует')),
+                str(item.get('book_old_price', 'Отсутствует')),
+                str(item.get('book_sale', 'Отсутствует'))
             ])
 
         csv_data = text_buffer.getvalue().encode('utf-8-sig')  # Явное указание BOM

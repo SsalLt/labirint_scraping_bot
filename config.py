@@ -1,3 +1,4 @@
+from aiogram.types import BotCommand
 from dotenv import load_dotenv, find_dotenv
 from collections import OrderedDict
 from datetime import datetime
@@ -6,6 +7,13 @@ import os
 load_dotenv(find_dotenv())
 
 TOKEN = os.getenv("TOKEN")
+
+my_commands: list[BotCommand] = [
+    BotCommand(command="start", description="▶ Запустить бота"),
+    BotCommand(command="category_articles", description="📚 Список товаров по категории"),
+    BotCommand(command="get_category_name", description="📝 Название категории по номеру"),
+    BotCommand(command="all_categories", description="📋 Список доступных категорий"),
+]
 
 
 class LRUDict(OrderedDict):

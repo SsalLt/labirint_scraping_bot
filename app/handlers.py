@@ -30,6 +30,7 @@ async def start_cmd(message: Message, state: FSMContext):
 
 
 @router.message(F.text == "🔢 Получить список категорий")
+@router.message(Command("all_categories"))
 async def get_categories(message: Message):
     file_path = Path(__file__).parent.parent / "categories.json"
 
@@ -84,6 +85,7 @@ async def update_categories_handler(message: Message):
 
 
 @router.message(F.text == "📚 Получить список товаров по категории")
+@router.message(Command("category_articles"))
 async def handle_category_request(message: Message, state: FSMContext):
     await message.answer("🔢 Введите номер категории:", reply_markup=kb.back_to_main)
     await state.set_state(ParseState.waiting_genre)
@@ -106,13 +108,13 @@ async def process_genre(message: Message, state: FSMContext):
                                  reply_markup=kb.remove)
 
             category: None | tuple[str, dict] = await collect_data(genre_id)
-            category_name, data = category
             if not category:
                 await message.answer("❌ Ошибка при сборе данных.\n"
                                      "Попробуйте позже или проверьте наличие категории "
-                                     f"(https://www.labirint.ru/genres/{genre_id}/).",
+                                     f"(Командой /get_category_name или по ссылке https://www.labirint.ru/genres/{genre_id}/).",
                                      reply_markup=kb.main)
                 return
+            category_name, data = category
             user_data_cache[genre_id] = category_name, data
 
         await message.answer("✅ Данные успешно собраны", reply_markup=kb.main)
@@ -138,7 +140,7 @@ async def send_csv(callback: CallbackQuery):
 
     if not category:
         await callback.answer()
-        await callback.message.answer("⏳ Данные устарели или отсутствуют")
+        await callback.message.answer("🚫 Данные устарели или отсутствуют.")
         return
 
     try:
@@ -186,6 +188,7 @@ async def send_csv(callback: CallbackQuery):
 
 
 @router.message(F.text == "📝 Название категории по номеру")
+@router.message(Command("get_category_name"))
 async def get_category_name_handler(message: Message, state: FSMContext):
     await message.answer("🔢 Введите номер категории:", reply_markup=kb.back_to_main)
     await state.set_state(ParseGenreForCheck.waiting_genre)

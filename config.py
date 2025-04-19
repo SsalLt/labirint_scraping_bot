@@ -1,10 +1,29 @@
 from dotenv import load_dotenv, find_dotenv
+from collections import OrderedDict
 from datetime import datetime
 import os
 
 load_dotenv(find_dotenv())
 
 TOKEN = os.getenv("TOKEN")
+
+
+class LRUDict(OrderedDict):
+    """
+    Словарь с автоматическим удалением старых записей при превышении лимита
+    """
+
+    def __init__(self, max_size: int = 100, *args, **kwargs):
+        self.max_size: int = max_size
+        super().__init__(*args, **kwargs)
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self._check_size()
+
+    def _check_size(self):
+        while len(self) > self.max_size:
+            self.popitem(last=False)  # Удаляем самый старый элемент
 
 
 def timer(func):
@@ -18,4 +37,4 @@ def timer(func):
     return wrapper
 
 
-__all__ = ["TOKEN", "timer"]
+__all__ = ["TOKEN", "timer", "LRUDict"]

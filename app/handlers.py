@@ -8,6 +8,8 @@ from pathlib import Path
 from io import BytesIO, StringIO
 import json
 import csv
+
+from config import LRUDict
 from scraping_core.scraping_functions import get_category_name
 from scraping_core.get_categories import update_categories
 from scraping_core.get_category_info import collect_data
@@ -15,7 +17,7 @@ from app.my_states import ParseState, ParseGenreForCheck
 import app.keyboards as kb
 
 router = Router()
-user_data_cache: dict = {}
+user_data_cache: LRUDict = LRUDict(max_size=20)
 
 
 @router.message(Command("start"))
@@ -95,34 +97,36 @@ async def process_genre(message: Message, state: FSMContext):
         await message.answer("❌ Номер категории должен быть числом. Повторите ввод:")
         return
 
-    await message.answer("⏳ Сбор данных запущен, это может занять некоторое время...",
-                         reply_markup=kb.remove)
-
     try:
-        data: list[dict] | None = await collect_data(genre_id)
-        if not data:
-            await message.answer("❌ Ошибка при сборе данных.\n"
-                                 "Попробуйте позже или проверьте наличие категории "
-                                 f"(https://www.labirint.ru/genres/{genre_id}/).",
-                                 reply_markup=kb.main)
-            return
-        user_data_cache[genre_id] = data
+        category: None | tuple[str, dict] = user_data_cache.get(genre_id)
+        if category:
+            category_name, data = category
+        else:
+            await message.answer("⏳ Сбор данных запущен, это может занять некоторое время...",
+                                 reply_markup=kb.remove)
 
-        json_file = BytesIO()
-        json_file.write(json.dumps(data, ensure_ascii=False, indent=4).encode('utf-8'))
-        json_file.seek(0)
+            category: None | tuple[str, dict] = await collect_data(genre_id)
+            category_name, data = category
+            if not category:
+                await message.answer("❌ Ошибка при сборе данных.\n"
+                                     "Попробуйте позже или проверьте наличие категории "
+                                     f"(https://www.labirint.ru/genres/{genre_id}/).",
+                                     reply_markup=kb.main)
+                return
+            user_data_cache[genre_id] = category_name, data
 
         await message.answer("✅ Данные успешно собраны", reply_markup=kb.main)
         await message.answer_document(
             BufferedInputFile(
-                json_file.read(),
-                filename=f"labirint_genre_{genre_id}.json"
+                json.dumps(data, ensure_ascii=False, indent=4).encode('utf-8'),
+                filename=f"labirint_genre_{genre_id}.json",
             ),
+            caption=category_name,
             reply_markup=kb.csv_inline(genre_id=genre_id)
         )
 
     except Exception as e:
-        await message.answer(f"⚠️ Ошибка: {str(e)}")
+        await message.answer(f"⚠️ Ошибка: {str(e)}", reply_markup=kb.main)
     finally:
         await state.clear()
 
@@ -130,13 +134,15 @@ async def process_genre(message: Message, state: FSMContext):
 @router.callback_query(F.data.startswith("csv_"))
 async def send_csv(callback: CallbackQuery):
     genre_id: int = int(callback.data.split("_")[1])
-    data: list[dict] | None = user_data_cache.get(genre_id)
+    category: None | tuple[str, dict] = user_data_cache.get(genre_id)
 
-    if not data:
-        await callback.answer("⏳ Данные устарели или отсутствуют", show_alert=True)
+    if not category:
+        await callback.answer()
+        await callback.message.answer("⏳ Данные устарели или отсутствуют")
         return
 
     try:
+        category_name, data = category
         text_buffer = StringIO()
         text_buffer.write('\ufeff')  # Добавление BOM для Excel
         writer = csv.writer(

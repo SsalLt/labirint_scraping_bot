@@ -45,4 +45,4 @@ def timer(func):
     return wrapper
 
 
-__all__ = ["TOKEN", "timer", "LRUDict"]
+__all__ = ["TOKEN", "timer", "LRUDict", "my_commands"]

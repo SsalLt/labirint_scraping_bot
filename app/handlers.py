@@ -179,7 +179,8 @@ async def send_csv(callback: CallbackQuery):
             BufferedInputFile(
                 bytes_buffer.read(),
                 filename=f"labirint_genre_{genre_id}.csv"
-            )
+            ),
+            caption=category_name
         )
         await callback.answer()
 

@@ -32,13 +32,13 @@ async def start_cmd(message: Message, state: FSMContext):
 @router.message(F.text == "🔢 Получить список категорий")
 @router.message(Command("all_categories"))
 async def get_categories(message: Message):
-    file_path = Path(__file__).parent.parent / "categories.json"
+    file_path = Path(__file__).parent.parent / "categories.txt"
 
     if file_path.exists():
-        json_file = FSInputFile(file_path, filename="categories.json")
+        json_file = FSInputFile(file_path, filename="categories.txt")
         await message.answer_document(
             document=json_file,
-            caption="Список категорий в формате JSON",
+            caption="Список категорий в формате TXT",
             reply_markup=kb.categories_list_kb
         )
     else:
@@ -61,16 +61,16 @@ async def get_categories_as_csv(callback: CallbackQuery):
         await callback.message.answer("❌ Список категорий не найден. Попробуйте позже.")
 
 
-@router.callback_query(F.data == "txt_format")
+@router.callback_query(F.data == "json_format")
 async def get_categories_as_txt(callback: CallbackQuery):
-    file_path = Path(__file__).parent.parent / "categories.txt"
+    file_path = Path(__file__).parent.parent / "categories.json"
 
     if file_path.exists():
-        txt_file = FSInputFile(file_path, filename="categories.txt")
+        txt_file = FSInputFile(file_path, filename="categories.json")
         await callback.answer()
         await callback.message.answer_document(
             document=txt_file,
-            caption="Список категорий в формате TXT"
+            caption="Список категорий в формате JSON"
         )
     else:
         await callback.answer()

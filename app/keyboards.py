@@ -18,7 +18,7 @@ back_to_main = ReplyKeyboardMarkup(
 
 categories_list_kb = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="⬇️ В формате CSV", callback_data="csv_format")],
-    [InlineKeyboardButton(text="⬇️ В формате TXT", callback_data="txt_format")]
+    [InlineKeyboardButton(text="⬇️ В формате JSON", callback_data="json_format")]
 ])
 
 
